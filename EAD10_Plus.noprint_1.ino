@@ -1,5 +1,5 @@
 #include <RK002.h>
-RK002_DECLARE_INFO("EAD-Plus", "Daniel Seipel, (dan@deseipel.com)", "0.5", "de45b790-49d4-42b4-b1e4-e196366f2e6d")
+RK002_DECLARE_INFO("Robinator", "Daniel Seipel, (dan@deseipel.com)", "0.5", "de45b790-49d4-42b4-b1e4-e196366f2e6d")
 //
 RK002_DECLARE_PARAM(NOTES_00, 1, 0, 127, 0)
 RK002_DECLARE_PARAM(NOTES_01, 1, 0, 127, 0)
