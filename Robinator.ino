@@ -77,9 +77,9 @@ bool bass = true;
 //[0-3 row][0-5 column]
 const int row = 4;
 const int column = 6;
-int bank_matrix[row][column];
+byte bank_matrix[row][column];
 int w_total = 0;
-int pool[30];
+byte pool[31];  // Size must match or exceed your max w_total
 byte bass_note;
 byte up_note = 0;
 bool started = false;
@@ -629,34 +629,21 @@ void Bank_Advance()
 
 }
 
-void Feature_toggle(byte channel, byte value)
-{
-  switch (channel) {
-    case 0:
-      if (value == 0) {
-        chords = false; break;
-      } else if (value == 127) {
-        chords = true; break;
-      }
-    case 1:
-      if (value == 0) {
-        melody = false; break;
-      } else if (value == 127) {
-        melody = true; break;
-      }
-    case 2:
-      if (value == 0) {
-        bass = false; break;
-      } else if (value == 127) {
-        bass = true; break;
-      }
-
-
-
-  }
-
-
-
+void Feature_toggle(byte channel, byte value) {
+	switch (channel) {
+		case 0:
+			if (value == 0) chords = false;
+			else if (value == 127) chords = true;
+			break; // Always break at the end of the case
+		case 1:
+			if (value == 0) melody = false;
+			else if (value == 127) melody = true;
+			break;
+		case 2:
+			if (value == 0) bass = false;
+			else if (value == 127) bass = true;
+			break;
+	}
 }
 
 
@@ -735,16 +722,14 @@ void Bass_RobinPrep()
     //RK002_printf("Lowest Note = %d", RoundRobin_Chord[index]);
     // bass guitar range is 28-67;
 
-    byte *Lowest = &RoundRobin_Chord[index];
-    //use the lowest note -12 as the root ?
+    // Get the lowest note from the array directly
+	  byte root = RoundRobin_Chord[index];
 
-    //normalize
-    while (*Lowest > 33) {
-      *Lowest = *Lowest - 12;
-    }
-    *Lowest = *Lowest + 12;
-
-    byte root = *Lowest;
+	  // Normalize it down to the correct octave range for bass
+	  while (root > 33) {
+		  root = root - 12;
+	  }
+	  root = root + 12;
     //RK002_printf("root %d,Lowest %d", root, *Lowest);
     byte fiv_u = root + 7;
     byte fiv_d = root - 7;
@@ -858,7 +843,7 @@ void banksort(int bank, int count) {
   for (int i = 0; i < (count - 1); i++) {
     for (int o = 0; o < (count - (i + 1)); o++) {
       if (bank_matrix[bank][o] > bank_matrix[bank][o + 1]) {
-        int t = bank_matrix[bank][o];
+        byte t = bank_matrix[bank][o];
         bank_matrix[bank][o] = bank_matrix[bank][o + 1];
         bank_matrix[bank][o + 1] = t;
       }
