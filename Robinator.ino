@@ -91,6 +91,29 @@ unsigned long PressBegin;
 unsigned long PressEnd;
 byte OnVelocity;
 
+// --- FUNCTION PROTOTYPES ---
+void Bass_RobinPrep();
+bool Bank_Empty(byte b);
+void Bank_Advance();
+void Bank_Advance_LM();
+void Round_Robin();
+void Round_RobinOff();
+void Melody_Robin(byte velocity);
+void Melody_RobinOff();
+void Bass_Robin();
+void Bass_RobinOff();
+void pushZerosToEnd(byte arr[], int n);
+void banksort(int bank, int count);
+void Up();
+void Down();
+void ClearBank();
+bool ClearBank_Test(unsigned long starttime, unsigned long endtime);
+void Success();
+void Fail();
+void Indicator();
+void Panic();
+void LearnMode(byte channel, byte key, byte velocity);
+// ---------------------------
 //  used for debugging
 void Print_Vars()
 {
