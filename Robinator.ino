@@ -352,33 +352,7 @@ void List_Params()
   }
 }
 
-void SetBank(byte key)
-{ // Middle C is Note #60 aka C4//
-  switch (key) {
 
-    case 60:
-      bank = 0;
-      bankset = true;
-      //RK002_printf("Bank %d Set from key %d", bank, key);
-      break;
-    case 61:
-      bank = 1;
-      bankset = true;
-      //RK002_printf("Bank %d Set from key %d", bank, key);
-      break;
-    case 62:
-      bank = 2;
-      bankset = true;
-      //RK002_printf("Bank %d Set from key %d", bank, key);
-      break;
-    case 63:
-      bank = 3;
-      bankset = true;
-      //RK002_printf("Bank %d Set from key %d", bank, key);
-      break;
-  }
-
-}
 void ClearBank()
 {
   // Clear bank of notes
@@ -699,10 +673,10 @@ boolean RK002_onStop()
   //RK002_printf("OnStop");
   //RK002_printf("LearnModeKey = (LearnModeKey=%d)", LearnModeKey );
   //Is LearnMode set to Stop msg?
-  // if ( LearnModeKey == Stop) {
-  //   LearnModeTest();
+   if ( LearnModeKey == Stop) {
+     LearnModeTest();
 
-  // } //end else
+   } //end else
   return true;
 }
 
@@ -853,7 +827,9 @@ void Bass_RobinOff()
     }*/
 
   byte note = OriGen_KeyMap[OrigKey_off][0];
-  RK002_sendNoteOff(bass_channel, note, OnVelocity);
+  if (note != 0) {
+     RK002_sendNoteOff(bass_channel, note, OnVelocity); // (or note_channel for melody)
+  }
   OriGen_KeyMap[OrigKey_off][0] = 0;
   //how to pass one row of a 2d array to a function expecting an array only?
   pushZerosToEnd(OriGen_KeyMap[OrigKey_off], 6);
@@ -983,7 +959,9 @@ void Melody_RobinOff()
     }*/
 
   byte note = OriGen_KeyMap[OrigKey_off][0];
-  RK002_sendNoteOff(note_channel, note, OnVelocity);
+   if (note != 0) {
+     RK002_sendNoteOff(note_channel, note, OnVelocity); // (or note_channel for melody)
+   }
   OriGen_KeyMap[OrigKey_off][0] = 0;
   //how to pass one row of a 2d array to a function expecting an array only?
   pushZerosToEnd(OriGen_KeyMap[OrigKey_off], 6);
@@ -1044,45 +1022,20 @@ void Round_Robin()
 }
 
 void Round_RobinOff()
-{ //just figure out the bank that was played for the orig note sent. use FIFO.
-  /*
-    for (byte i = 0; i < 6; i++)
+{ 
+  if (OriGen_ChordMap[OrigKey_off][0] != 0) {
+    byte note_bank = OriGen_ChordMap[OrigKey_off][0] - 1 ;
+    OriGen_ChordMap[OrigKey_off][0] = 0;
+    for (byte j = 0; j < 6; j++)
     {
-    if (OriGen_ChordMap[OrigKey_off][i] != 0)
-    {
-      byte note_bank = OriGen_ChordMap[OrigKey_off][i] - 1;
-      // thisis the bank-1 we want to note offs
-      for (byte j = 0; j < 6; j++)
-      {
-        byte note = bank_matrix[note_bank][j];
-        if (note != 0)
-        { RK002_sendNoteOff(chord_channel, note, OnVelocity);
-        }
+      byte note = bank_matrix[note_bank][j];
+      if (note != 0)
+      { 
+        RK002_sendNoteOff(chord_channel, note, OnVelocity);
       }
-      //set the sub array column 0 to zero
-      OriGen_ChordMap[OrigKey_off][i] = 0;
-
     }
-
-    }*/  //8.16.20 edit
-  byte note_bank = OriGen_ChordMap[OrigKey_off][0] - 1 ;
-  //RK002_printf("note_bank is %d",note_bank);
-  OriGen_ChordMap[OrigKey_off][0] = 0;
-  for (byte j = 0; j < 6; j++)
-  {
-    byte note = bank_matrix[note_bank][j];
-    if (note != 0)
-    { RK002_sendNoteOff(chord_channel, note, OnVelocity);
-    }
+    pushZerosToEnd(OriGen_ChordMap[OrigKey_off], 6);
   }
-  // now move the bank values up
-  //push zeros to end is really a way deal with >1 noteOnds / bank being triggered.  chordmap is really a 'bank hopper', not hopper as in jump,
-  // hopper as in an ordered queue system.  FIFO.
-  // meaning that its a 1-based index to keep track of what bank should be triggered off.
-  pushZerosToEnd(OriGen_ChordMap[OrigKey_off], 6);
-
-
-
 }
 
 boolean RK002_onClock()
