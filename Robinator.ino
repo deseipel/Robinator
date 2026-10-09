@@ -400,21 +400,9 @@ bool ClearBank_Test(unsigned long starttime, unsigned long endtime) {
 
 //Get out of everything;
 void Panic() {
-  // LearnMode_active = false;
-  //  LearnMode_count = 0;
-  //  bankset = false;
-  //  ElapsedTime = 0;
-  //  StartTime = 0;
-
-  //all notes off, all channels
-
-  for (int i = 0; i < 127; ++i) {
-    for (int j = 0; j < 16; ++j) {
-      RK002_sendNoteOff(j, i, 0);
-    }
+  for (int channel = 0; channel < 16; ++channel) {
+    RK002_sendControlChange(channel, 123, 0);
   }
-
-
 }
 
 
@@ -854,16 +842,16 @@ void Down()
 {
   int count = 0;
   for (int i = 0; i < 6; i++) {
-    byte note = bank_matrix[bank][i];
-    if (note != 0) {
+    if (bank_matrix[bank][i] != 0) {
       count++;
     }
   }
 
   banksort(bank, count);
-  //RK002_printf("Down note is %d", up_note);
+  
   if (count != 0) {
-    if (up_note == 0) {
+    // The >= ensures it catches out-of-bounds numbers after a bank switch
+    if (up_note == 0 || up_note >= count) { 
       up_note = count - 1;
     }
     else {
@@ -871,31 +859,26 @@ void Down()
     }
   }
 }
+
 void Up()
 {
   int count = 0;
   for (int i = 0; i < 6; i++) {
-    byte note = bank_matrix[bank][i];
-    if (note != 0) {
+    if (bank_matrix[bank][i] != 0) {
       count++;
     }
   }
 
   banksort(bank, count);
-  for (int i = 0; i < 6; i++) {
-    //RK002_printf("Bank %d Row %d", bank,  bank_matrix[bank][i] );
-
-  }
-  //RK002_printf("Upnote is %d", up_note);
 
   if (count != 0) {
     up_note = up_note + 1;
-    if ( up_note == count) {
+    // The >= protects against smaller banks
+    if ( up_note >= count) { 
       up_note = 0;
     }
   }
 }
-
 
 void Melody_Robin(byte velocity)
 {
