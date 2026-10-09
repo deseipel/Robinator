@@ -347,7 +347,7 @@ void LearnMode(byte channel, byte key, byte velocity)
 void List_Params()
 {
   for (int i = 0; i < 24; i++) {
-    int param = RK002_paramGet(i);
+    //int param = RK002_paramGet(i);
     //RK002_printf("Parameter %d = %d", i, param);
   }
 }
