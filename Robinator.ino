@@ -118,7 +118,7 @@ void Fail();
 void Indicator();
 void Panic();
 void LearnMode(byte channel, byte key, byte velocity);
-oid ToggleLearnMode();
+void ToggleLearnMode();
 // ---------------------------
 //  used for debugging
 void Print_Vars()
