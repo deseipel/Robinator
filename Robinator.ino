@@ -69,7 +69,11 @@ bool LearnHolding = false;
 
 unsigned long IndicatorTimer = 0;
 bool IndicatorActive = false;
-//count of LearnMode activate/deactivate msgs
+
+byte BeepsRemaining = 0;
+bool BeepIsOn = false;
+unsigned long BeepInterval = 0;
+
 //byte LearnMode_count = 0;
 byte bank = 0 ;
 
@@ -594,9 +598,7 @@ boolean RK002_onControlChange(byte channel, byte nr, byte value)
   // Stop Button (CC 51) Quick Tap for Bank Advance in Learn Mode
   else if (nr == 51 && value > 0 && LearnMode_active == true) {
     Bank_Advance_LM();
-    for (byte i = 0; i < bank + 1; i++) {
-      Indicator();
-    }
+    BeepsRemaining = bank + 1; // Queue the beeps
   }
   // Panic Button (Mapped to CC 55)
   else if (nr == 55 && value > 0) {
@@ -1010,7 +1012,7 @@ void setup() {
 void loop() {
   unsigned long currentMillis = millis();
 
-  // 1. Non-blocking Tone Gate (150ms duration)
+  // 1. Non-blocking Tone Gate for Chords (Success/Fail)
   if (IndicatorActive == true && (currentMillis - IndicatorTimer >= 150)) {
     RK002_sendNoteOff(15, 60, 127);
     RK002_sendNoteOff(15, 63, 127);
@@ -1022,6 +1024,23 @@ void loop() {
   // 2. 2-Second Hold Toggle for Learn Mode
   if (LearnHolding == true && (currentMillis - LearnHoldStart >= 2000)) {
     ToggleLearnMode();
-    LearnHolding = false; // Prevents re-triggering if you keep holding
+    LearnHolding = false;
+  }
+
+  // 3. Bank Indicator Beep Sequencer
+  if (BeepsRemaining > 0) {
+    // If beep is off and 150ms of silence has passed, turn it ON
+    if (BeepIsOn == false && (currentMillis - BeepInterval >= 150)) {
+      RK002_sendNoteOn(15, 60, 127);
+      BeepIsOn = true;
+      BeepInterval = currentMillis;
+    }
+    // If beep is on and 150ms of sound has passed, turn it OFF
+    else if (BeepIsOn == true && (currentMillis - BeepInterval >= 150)) {
+      RK002_sendNoteOff(15, 60, 127);
+      BeepIsOn = false;
+      BeepInterval = currentMillis;
+      BeepsRemaining--; // One beep completed, remove from queue
+    }
   }
 }
