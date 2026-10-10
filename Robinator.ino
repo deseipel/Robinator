@@ -582,13 +582,20 @@ boolean RK002_onControlChange(byte channel, byte nr, byte value)
   if (nr == 50 && LearnMode_active == false) {
     Feature_toggle(channel, value);
   }
-  // Play Button (CC 51) Hold Logic for Learn Mode
-  else if (nr == 51) {
+  // Play Button (CC 54) Hold Logic for Learn Mode
+  else if (nr == 54) {
     if (value > 0) {
       LearnHoldStart = millis();
       LearnHolding = true;
     } else {
       LearnHolding = false; // Cancel if released early
+    }
+  }
+  // Stop Button (CC 51) Quick Tap for Bank Advance in Learn Mode
+  else if (nr == 51 && value > 0 && LearnMode_active == true) {
+    Bank_Advance_LM();
+    for (byte i = 0; i < bank + 1; i++) {
+      Indicator();
     }
   }
   // Panic Button (Mapped to CC 55)
@@ -601,13 +608,6 @@ boolean RK002_onControlChange(byte channel, byte nr, byte value)
 
 boolean RK002_onStop()
 {
-  // Quick tap to advance bank while in Learn Mode
-  if (LearnMode_active == true) {
-    Bank_Advance_LM();
-    for (byte i = 0; i < bank + 1; i++) {
-      Indicator();
-    }
-  }
   return true;
 }
 
