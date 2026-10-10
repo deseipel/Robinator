@@ -348,12 +348,6 @@ bool ClearBank_Test(unsigned long starttime, unsigned long endtime) {
   }
 }
 
-//Get out of everything;
-void Panic() {
-  for (int channel = 0; channel < 16; ++channel) {
-    RK002_sendControlChange(channel, 123, 0);
-  }
-}
 
 
 boolean RK002_onProgramChange(byte channel, byte nr)
