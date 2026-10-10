@@ -62,10 +62,15 @@ byte OriGen_ChordMap[128][6];  //indexes 0-127 represent original note pressed, 
 byte OrigKey;
 byte OrigKey_off;
 
-volatile unsigned long ElapsedTime = 0;
-volatile unsigned long StartTime = 0;
+//volatile unsigned long ElapsedTime = 0;
+//volatile unsigned long StartTime = 0;
+unsigned long LearnHoldStart = 0;
+bool LearnHolding = false;
+
+unsigned long IndicatorTimer = 0;
+bool IndicatorActive = false;
 //count of LearnMode activate/deactivate msgs
-byte LearnMode_count = 0;
+//byte LearnMode_count = 0;
 byte bank = 0 ;
 
 //turns features on/off
@@ -113,6 +118,7 @@ void Fail();
 void Indicator();
 void Panic();
 void LearnMode(byte channel, byte key, byte velocity);
+oid ToggleLearnMode();
 // ---------------------------
 //  used for debugging
 void Print_Vars()
@@ -164,111 +170,55 @@ void Refresh_BankMatrix()
   }
 }
 
-void Indicator()
-{
+void Indicator() {
   RK002_sendNoteOn(15, 60, 127);
-  delay(50);
-  RK002_sendNoteOff(15, 60, 127);
-  delay(50);
+  IndicatorTimer = millis();
+  IndicatorActive = true;
 }
 
-void Success()
-{
+void Success() {
   RK002_sendNoteOn(15, 60, 127);
-  //  delay(50);
   RK002_sendNoteOn(15, 64, 127);
-
   RK002_sendNoteOn(15, 67, 127);
-  // delay(50);
-  RK002_sendNoteOff(15, 64, 127);
-
-  RK002_sendNoteOff(15, 60, 127);
-
-  // delay(50);
-  RK002_sendNoteOff(15, 67, 127);
-
-  //Panic();
+  IndicatorTimer = millis();
+  IndicatorActive = true;
 }
 
-void Fail()
-{
+void Fail() {
   RK002_sendNoteOn(15, 67, 127);
-  //delay(50);
   RK002_sendNoteOn(15, 63, 127);
-
   RK002_sendNoteOn(15, 60, 127);
-
-  //delay(50);
-
-  RK002_sendNoteOff(15, 67, 127);
-  RK002_sendNoteOff(15, 63, 127);
-  RK002_sendNoteOff(15, 60, 127);
-
-  //  Panic();
+  IndicatorTimer = millis();
+  IndicatorActive = true;
 }
 
-void LearnModeTest() {
-  //Print_Vars();
-  unsigned long time = millis();  //time right now.
-
-  if (LearnMode_count == 0) {
-    StartTime = time;
-  }
-  ElapsedTime =  time - StartTime;
-  LearnMode_count ++;
-  //RK002_printf("StartTime = %d", StartTime);
-  //RK002_printf("LearnMode_count = (LearnMode_count=%d)", LearnMode_count);
-  //RK002_printf("ElapsedTime = (ElapsedTime=%d)", ElapsedTime);
-
-  if ( LearnMode_count == 3 && ElapsedTime <= 2000) {
-    ElapsedTime = 0;
-    StartTime = 0;
-    LearnMode_count = 0;
-
-    if (LearnMode_active == false) {
-      LearnMode_active = true;
-      LearnMode_count = 0;
-
-      //RK002_printf("LearnMode Activated");
-      bank = 0;
-      //Play Indicator Notes?
-      Success();
-
-    }
-    else {
-      LearnMode_active = false;
-      LearnMode_count = 0;
-      //RK002_printf("LearnMode Deactivated");
-      //RK002_printf("LearnMode_active =%d", LearnMode_active);
-      Refresh_BankMatrix();
-      Bass_RobinPrep();
-      // bank = 0;
-      //what if bank 0 is empty though?
-      for (byte i = 0; i < 4; i++) {
-        if (Bank_Empty(i) == false ) {
-          bank = i;
-          break;
-        }
+void ToggleLearnMode() {
+  if (LearnMode_active == false) {
+    LearnMode_active = true;
+    bank = 0;
+    Success();
+  } 
+  else {
+    LearnMode_active = false;
+    Refresh_BankMatrix();
+    Bass_RobinPrep();
+    
+    // Find the first non-empty bank to land on
+    for (byte i = 0; i < 4; i++) {
+      if (Bank_Empty(i) == false ) {
+        bank = i;
+        break;
       }
-      Fail();
     }
-    //return true;
-  }
-  else if ( ElapsedTime > 2000) {
-    //RK002_printf("ElapsedTime exceeded 2000. ElapsedTime = (ElapsedTime=%d)", ElapsedTime);
-
-    ElapsedTime = 0;
-    StartTime = 0;
-    LearnMode_count = 0;
-
     Fail();
   }
-  else {
-    //RK002_printf("Count is less than 3 and less than 2000");
+}
 
-    //return false;
+void Panic() {
+  // Send CC 123 (All Notes Off) to all 16 MIDI channels instantly
+  for (int i = 0; i < 16; ++i) {
+    RK002_sendControlChange(i, 123, 0);
   }
-
 }
 
 
@@ -634,23 +584,22 @@ void Feature_toggle(byte channel, byte value) {
 
 boolean RK002_onControlChange(byte channel, byte nr, byte value)
 {
-
-  if (LearnMode_active == true && nr == 51 && value == 127)
-  { Bank_Advance_LM();
-    for (byte i = 0; i < bank + 1; i++)
-    {
-      Indicator();
-    }
-    //RK002_printf("OnControlChange: bank set to bank %d", bank);
-   // return false;
-  }
-  else if ( nr == 50 && LearnMode_active == false) {
+  // Feature Toggles
+  if (nr == 50 && LearnMode_active == false) {
     Feature_toggle(channel, value);
   }
-  else if ( nr == 54 && value == 127)
-  {
-    LearnModeTest();
-   // return false;
+  // Play Button (CC 51) Hold Logic for Learn Mode
+  else if (nr == 51) {
+    if (value > 0) {
+      LearnHoldStart = millis();
+      LearnHolding = true;
+    } else {
+      LearnHolding = false; // Cancel if released early
+    }
+  }
+  // Panic Button (Mapped to CC 55)
+  else if (nr == 55 && value > 0) {
+    Panic();
   }
 
   return true;
@@ -658,15 +607,17 @@ boolean RK002_onControlChange(byte channel, byte nr, byte value)
 
 boolean RK002_onStop()
 {
-  //RK002_printf("OnStop");
-  //RK002_printf("LearnModeKey = (LearnModeKey=%d)", LearnModeKey );
-  //Is LearnMode set to Stop msg?
-   if ( LearnModeKey == Stop) {
-     LearnModeTest();
-
-   } //end else
+  // Quick tap to advance bank while in Learn Mode
+  if (LearnMode_active == true) {
+    Bank_Advance_LM();
+    for (byte i = 0; i < bank + 1; i++) {
+      Indicator();
+    }
+  }
   return true;
 }
+
+
 
 /*
    so this is getting a bit out of hand.  the assumption of the root note is the first problem
@@ -1063,6 +1014,20 @@ void setup() {
 }//end setup
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  unsigned long currentMillis = millis();
 
-}//end loop
+  // 1. Non-blocking Tone Gate (150ms duration)
+  if (IndicatorActive == true && (currentMillis - IndicatorTimer >= 150)) {
+    RK002_sendNoteOff(15, 60, 127);
+    RK002_sendNoteOff(15, 63, 127);
+    RK002_sendNoteOff(15, 64, 127);
+    RK002_sendNoteOff(15, 67, 127);
+    IndicatorActive = false;
+  }
+
+  // 2. 2-Second Hold Toggle for Learn Mode
+  if (LearnHolding == true && (currentMillis - LearnHoldStart >= 2000)) {
+    ToggleLearnMode();
+    LearnHolding = false; // Prevents re-triggering if you keep holding
+  }
+}
