@@ -119,7 +119,7 @@ void ClearBank();
 bool ClearBank_Test(unsigned long starttime, unsigned long endtime);
 void Success();
 void Fail();
-void Indicator();
+//void Indicator();
 void Panic();
 void LearnMode(byte channel, byte key, byte velocity);
 void ToggleLearnMode();
